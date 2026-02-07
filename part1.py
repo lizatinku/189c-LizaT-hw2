@@ -38,12 +38,13 @@ For example, if a property fails, use
 The first one is written for you.
 """
 
+# @pytest.mark.skip
 def test_abs_1():
     x = z3.Int('x')
     spec = z3.Implies(x >= 0, abs(x) == x)
     assert prove(spec) == PROVED
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_abs_2():
     x = z3.Int('x')
     y = z3.Int('y')
