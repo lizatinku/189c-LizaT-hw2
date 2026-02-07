@@ -65,12 +65,24 @@ your implementation is correct.
 """
 
 def pigeons_in_holes(m, n):
-    # TODO
-    raise NotImplementedError
+    p = [[z3.Bool(f"p_{i}_{j}") for j in range(n)] for i in range(m)]
+
+    constraints = []
+    for i in range(m):
+        constraints.append(z3.PbEq([(p[i][j], 1) for j in range(n)], 1))
+
+    return z3.And(constraints)
+    # raise NotImplementedError
 
 def two_in_hole(m, n):
-    # TODO
-    raise NotImplementedError
+    
+    p = [[z3.Bool(f"p_{i}_{j}") for j in range(n)] for i in range(m)]
+    hole_constraints = []
+    for j in range(n):
+        hole_constraints.append(z3.PbGe([(p[i][j], 1) for i in range(m)], 2))
+
+    return z3.Or(hole_constraints)
+    # raise NotImplementedError
 
 """
 Test cases
@@ -110,10 +122,14 @@ a specification (as a Z3 formula) that says that the
 pigeonhole principle is true for n + 1 pigeons and n holes.
 """
 
-@pytest.mark.skip
+# @pytest.mark.skip
 def pigeonhole_principle(n):
-    # TODO
-    raise NotImplementedError
+    return z3.Implies(
+        pigeons_in_holes(n + 1, n),
+        two_in_hole(n + 1, n)
+    )
+
+    # raise NotImplementedError
 
 """
 Let's test the performance of Z3 on your implementation.
@@ -124,7 +140,8 @@ on your machine?
 (list the number of seconds or a timeout if it takes longer than 3 minutes):
 
 ===== ANSWER Q4 BELOW =====
-
+On my machine, the small version proved almost instantly - under 1 second.
+The medium version took longer, but still completed within the 3-minute timeout.
 ===== END OF Q4 ANSWER =====
 
 5. What happens when as increase the number of holes to
@@ -132,7 +149,9 @@ tens of thousands (the "large" test)?
 (list the number of seconds or a timeout if it takes longer than 3 minutes):
 
 ===== ANSWER Q5 BELOW =====
-
+When increasing the number of holes to tens of thousands (the large test), 
+Z3 did not finish within the 3-minute timeout and appeared to hang. 
+This required marking the test with @pytest.mark.skip.
 ===== END OF Q5 ANSWER =====
 
 For both questions, assume a timeout of 3 minutes.
@@ -220,7 +239,9 @@ If it fails, change PROVED to the expected result.
 Describe what happened below.
 
 ===== ANSWER Q6 BELOW =====
-
+When we ask Z3 to prove the general pigeonhole principle, it returns UNKNOWN instead of PROVED. 
+This is because the encoding uses quantifiers and unbounded arrays, which require induction-like reasoning. 
+Although the statement is true, Z3 cannot automatically prove it, demonstrating a limitation of the solver.
 ===== END OF Q6 ANSWER =====
 """
 
@@ -246,9 +267,30 @@ This test should pass.
 """
 
 def pigeonhole_principle_false():
-    # TODO: Copy and paste the previous function.
-    # Modify one of the constraints so that the principle is false.
-    raise NotImplementedError
+    n = z3.Int('n')
+    holes = z3.Array('holes', z3.IntSort(), z3.IntSort())
+    sum_holes = z3.Array('sums', z3.IntSort(), z3.IntSort())
+
+    sum_base_case = sum_holes[0] == 0
+    i = z3.Int('i')
+    sum_inductive = z3.ForAll(i, z3.Implies(
+        z3.And(i >= 0, i < n),
+        sum_holes[i + 1] == sum_holes[i] + holes[i]
+    ))
+
+    pigeons_in_holes = sum_holes[n] == n 
+    two_in_hole = z3.Exists(i, z3.And(i >= 0, i < n, holes[i] >= 2))
+
+    return z3.Implies(
+        z3.And([
+            n >= 0,
+            sum_base_case,
+            sum_inductive,
+            pigeons_in_holes,
+        ]),
+        two_in_hole,
+    )
+    # raise NotImplementedError
 
 @pytest.mark.skip
 def test_pigeonhole_principle_false():
@@ -260,6 +302,8 @@ Why do you think Z3 has trouble with this problem?
 Comment on your thoughts below.
 
 ===== ANSWER Q8 BELOW =====
-
+Yes, this result is expected. Z3 struggles because the problem uses quantifiers 
+and works for any number of holes, which requires reasoning by induction. 
+Even though the statement is true, Z3 cannot prove it and returns UNKNOWN.
 ===== END OF Q8 ANSWER =====
 """
